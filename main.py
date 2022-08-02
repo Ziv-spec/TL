@@ -1,6 +1,21 @@
-from genericpath import getmtime
+from tkinter import W
 import pygame 
 from collections import defaultdict
+from os.path import getmtime
+from os import stat
+import platform
+
+# TODO: 
+#  - make tile selection tool thingy
+#  - undo-redo system  
+#  - ui system? probably imgui or something of the like, very simple for specific thigns  
+#  - text system (just have text wrap, and the likes)
+#  - beginning of combat system tomorrow
+#  - make settings even more robust
+#  - make chunck system for tiles
+
+# DONE: 
+#  - camera to go around the world freely and edit things
 
 # for undo and redo
 class CircleBuffer:
@@ -21,42 +36,91 @@ class CircleBuffer:
       self.end = end  
 
   def get_next(self):
-    self.next(self)
-    return self.buff[self.end]
+    value = self.buff[self.end]
+    self.next()
+    return value
 
   def get_previous(self):
-    self.previous(self)
-    return self.buff[self.end]
+    value = self.buff[self.end]
+    self.previous()
+    return value
 
   def set_next(self, item):
-    self.next(self)
     self.buff[self.end] = item
+    self.next()
 
   def set_previous(self, item):
-    self.previous(self)
     self.buff[self.end] = item
+    self.previous()
 
 class Context: 
   def __init__(self, display, events):
     self.display = display 
     self.settings = defaultdict(lambda: False)  # rethink this
+    self.undo_buffer = CircleBuffer(256)
 
     self.events = events 
     self.events_processed = defaultdict(lambda: False) 
+    self.dt = 0
+    self.world = [[0]*100 for i in range(100)]
+    self.camera = [.0, .0]
+    self.tile_size = (32, 32)
 
-# globals 
-world = [[0]*100 for i in range(100)]
 
-from os.path import getmtime
-from os import stat
-import platform
+def load_settings(path, settings):
+
+  def eat_trash(line, begin_index):
+    for j in range(begin_index, len(line)):
+      if line[j] != ' ' or line[j] != '\t' or line[j] != '\r':
+        return j
+    return max(len(line)-1, 0)
+  
+  def error(msg, path, line):
+    print(path + ":", msg, f"at {line}")
+    
+  with open(path, 'rt') as f:
+    data = f.read()
+    lines = data.split("\n")
+    for i, line in enumerate(lines):
+      
+      if len(line) == 0:
+        continue
+      
+      keyword = ""
+      end = len(line) 
+      begin = eat_trash(line, 0)
+      for j in range(begin, len(line)):
+        if line[j].isalpha() or line[j] == '_' or line[j].isdecimal():
+          keyword += line[j]
+        else: 
+          end = j+1
+          break
+
+      begin = eat_trash(line, end)
+      if line[begin] != '=':
+        error("error expected assignment of value", path, i)
+        return False
+
+      value = None 
+      end = begin + 1
+      begin = eat_trash(line, end)
+      if line[begin+1].isdigit():
+        value = float(line[begin+1:])
+      else: 
+        error("not implemented value support", path, i)
+        return False
+
+      settings[keyword] = value
+  
+  return True
 
 def main():
+
+
   size = (800, 600) # TODO: check which window size is acceptabe
   running = True
   FPS = 120 
   clock  = pygame.time.Clock()
-
   display: pygame.Surface = pygame.display.set_mode(size)
   bg_color = (255, 255, 255) 
 
@@ -64,20 +128,22 @@ def main():
 
   modified_date, last_modified_date = None, None
   settings_file_path = "data/settings.txt"
-  load_settings(settings_file_path, context.settings)
 
-
+  dt = 1/FPS
   while running:
 
     display.fill(bg_color)
     context.events = pygame.event.get()
+    context.dt = dt
 
     # find the modified date of the settings file 
     if platform.system() == "Windows": modified_date = getmtime(settings_file_path)
     else: modified_date = stat(settings_file_path).st_mtime
 
     if last_modified_date != modified_date:
-      load_settings(settings_file_path, context.settings)
+      success = load_settings(settings_file_path, context.settings)
+      if not success: 
+        print("NOTE: could not load all settings, some things might break.")
 
 
     # TODO: context switch whenever needed system
@@ -87,43 +153,21 @@ def main():
 
     pygame.display.update()
     last_modified_date = modified_date
-    clock.tick(FPS)
+    dt = clock.tick(FPS) * 0.001
 
-def load_settings(path, settings):
-
-  with open(path, 'rt') as f:
-    data = f.read()
-    lines = data.split("\n")
-    for i, line in enumerate(lines):
-      words = line.split(" ")
-      if len(words) == 3:
-        name, operation, value = words
-        if not name.isalpha():
-          print(f"invalid var name on line {i}")
-          return False 
-        if operation != '=':
-          print(f"invalid opeartion on line {i}")
-          return False 
-        if not value.isnumeric(): 
-          print(f"invalid value is not numeric on line {i}")
-          return False 
-        settings[name] = int(value)
-      elif len(words) == 1 and words[0] == '':
-        pass
-      else: 
-        print(f"unexpected word amount {len(words)} on line {i}")
 
 def editor(context: Context) -> bool:
-  global world
 
   tile_size = (32,32) 
   tile_surf = pygame.Surface(tile_size)
 
-  def screen_to_world_space(screen_pos, tile_size):
-    return (screen_pos[0]//tile_size[0], screen_pos[1]//tile_size[1])
+  def screen_to_world_space(context, screen_pos):
+    tile_width, tile_height = context.tile_size
+    cx, cy = context.camera 
+    return (screen_pos[0]-cx)//tile_width, (screen_pos[1]-cy)//tile_height
 
   mouse = pygame.mouse.get_pos()
-  cursor_position = screen_to_world_space(mouse, tile_size) 
+  cursor_position = screen_to_world_space(context, mouse) 
 
   for event in context.events:
     if event.type == pygame.QUIT:
@@ -135,16 +179,42 @@ def editor(context: Context) -> bool:
     if event.type == pygame.MOUSEBUTTONUP:
       if event.button == 1:
          context.events_processed['left_click'] = False
+    if event.type == pygame.KEYDOWN:
+      if event.key == pygame.K_a:
+        context.events_processed['a'] = True
+      elif event.key == pygame.K_w:
+        context.events_processed['w'] = True
+      elif event.key == pygame.K_s:
+        context.events_processed['s'] = True
+      elif event.key == pygame.K_d:
+        context.events_processed['d'] = True
+      elif event.key == pygame.K_z:
+        last_action = context.undo_buffer.get_previous()
+      elif event.key == pygame.K_y:
+        context.undo_buffer.get_next()
+
+    if event.type == pygame.KEYUP:
+      if event.key == pygame.K_a:
+        context.events_processed['a'] = False
+      elif event.key == pygame.K_w:
+        context.events_processed['w'] = False
+      elif event.key == pygame.K_s:
+        context.events_processed['s'] = False
+      elif event.key == pygame.K_d:
+        context.events_processed['d'] = False
+      
+  speed = 5
+  context.camera[0] += context.events_processed['a'] * speed + -context.events_processed['d'] * speed
+  context.camera[1] += context.events_processed['w'] * speed + -context.events_processed['s'] * speed
       
   if context.events_processed['left_click']:
-    world[cursor_position[0]][cursor_position[1]] = 1
+    context.world[int((mouse[0]+context.camera[0])//32)][(int(mouse[1]+context.camera[1])//32)] = 1
+  context.display.blit(tile_surf, (int((mouse[0]//32)*32), int((mouse[1]//32)*32)))
 
-  context.display.blit(tile_surf, (cursor_position[0]*tile_size[0], cursor_position[1]*tile_size[1]))
-
-  for i, line in enumerate(world):
+  for i, line in enumerate(context.world):
     for j, tile in enumerate(line):
       if tile == 1:
-        context.display.blit(tile_surf, (i*tile_size[0], j*tile_size[1]))
+        context.display.blit(tile_surf, (i*tile_size[0]-context.camera[0], j*tile_size[1]-context.camera[1]))
 
   return True 
 
