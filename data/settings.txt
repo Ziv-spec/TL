@@ -1,0 +1,4 @@
+
+tilesize = 32
+something = 123123
+else = 192837
