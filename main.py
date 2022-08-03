@@ -1,9 +1,9 @@
-from tkinter import W
 import pygame 
 from collections import defaultdict
 from os.path import getmtime
 from os import stat
 import platform
+from pygame import Vector2
 
 # TODO: 
 #  - make tile selection tool thingy
@@ -63,7 +63,7 @@ class Context:
     self.events_processed = defaultdict(lambda: False) 
     self.dt = 0
     self.world = [[0]*100 for i in range(100)]
-    self.camera = [.0, .0]
+    self.camera = Vector2()
     self.tile_size = (32, 32)
 
 
@@ -119,7 +119,7 @@ def main():
 
   size = (800, 600) # TODO: check which window size is acceptabe
   running = True
-  FPS = 120 
+  FPS =  60
   clock  = pygame.time.Clock()
   display: pygame.Surface = pygame.display.set_mode(size)
   bg_color = (255, 255, 255) 
@@ -158,8 +158,10 @@ def main():
 
 def editor(context: Context) -> bool:
 
-  tile_size = (32,32) 
+  tile_size = context.settings['tile_size']
+  tile_size = (int(tile_size), int(tile_size))
   tile_surf = pygame.Surface(tile_size)
+  dt = context.dt
 
   def screen_to_world_space(context, screen_pos):
     tile_width, tile_height = context.tile_size
@@ -203,18 +205,19 @@ def editor(context: Context) -> bool:
       elif event.key == pygame.K_d:
         context.events_processed['d'] = False
       
-  speed = 5
-  context.camera[0] += context.events_processed['a'] * speed + -context.events_processed['d'] * speed
-  context.camera[1] += context.events_processed['w'] * speed + -context.events_processed['s'] * speed
+  
+  v = 300
+  x, y = v*dt, v*dt
+  context.camera += Vector2(-context.events_processed['a']*x + context.events_processed['d']*x, -context.events_processed['w']*y + context.events_processed['s']*y)
       
   if context.events_processed['left_click']:
-    context.world[int((mouse[0]+context.camera[0])//32)][(int(mouse[1]+context.camera[1])//32)] = 1
-  context.display.blit(tile_surf, (int((mouse[0]//32)*32), int((mouse[1]//32)*32)))
+    context.world[int((mouse[0]+context.camera[0])//tile_size[0])][(int(mouse[1]+context.camera[1])//tile_size[1])] = 1
+  context.display.blit(tile_surf, (int((mouse[0]//tile_size[0])*tile_size[0]), int((mouse[1]//tile_size[1])*tile_size[1])))
 
   for i, line in enumerate(context.world):
     for j, tile in enumerate(line):
       if tile == 1:
-        context.display.blit(tile_surf, (i*tile_size[0]-context.camera[0], j*tile_size[1]-context.camera[1]))
+        context.display.blit(tile_surf, (round(i*tile_size[0]-context.camera[0]), round(j*tile_size[1]-context.camera[1])))
 
   return True 
 
