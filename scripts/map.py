@@ -47,7 +47,7 @@ class TileMap():
           
      def get_collider_by_data(self , pos):
           
-          rect = FloatRect(pos , pygame.Vector2(8,8))
+          rect = FloatRect(pos , pygame.Vector2(self.tilesize))
           
           return Collider(rect , "block")
           
@@ -83,7 +83,7 @@ class TileMap():
                               for y in range(cy*4 , (cy+1)*4):
                                    # print(y)
                                    for x in range(cx*4 , (cx+1)*4):
-                                        if (t_tab[y][x] == "68"):
+                                        if (t_tab[y][x] == "69"):
                                              collider = self.get_collider_by_data(pygame.Vector2(x*self.tilesize , y*self.tilesize))
                                              c_chunk.append(collider)   
                               if c_chunk != []:

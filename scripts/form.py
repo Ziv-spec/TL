@@ -100,10 +100,7 @@ class Collider():
           self.rect.pos += vector
      
      def collide(self , collider):
-          if collider in self.colliders_on:
-               return True
-          else:
-               return collide_rect(self.rect , collider.rect)
+          return collide_rect(self.rect , collider.rect)
                
      
 def SAT_collision(r1 : FloatRect , r2 : FloatRect):

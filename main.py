@@ -4,6 +4,7 @@ import time
 
 from pygame.locals import *
 from scripts.camera import *
+from scripts.entity import *
 from scripts.map import TileMap
 
 
@@ -17,16 +18,18 @@ def main():
     tilemap = TileMap(chunk_size=[5,5])
     tilemap.load_map("./data/maps/level-test.tmx")
     timepoint = time.time()
-    
-    keys = {"right":False , "left":False , "up":False , "down":False}
     font = pygame.font.Font(None , 30)
+    
+    player = Player(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    chunk_pos = 0
     
     while True:
         
+        chunk_pos = player.hitbox.rect.pos // (4*32)
         dt = time.time() - timepoint
         timepoint = time.time()
         
-        camera.erase_surf([255]*3)
+        camera.erase_surf([95, 138, 163])
         
         for event in pygame.event.get():
             
@@ -35,31 +38,36 @@ def main():
                 sys.exit(0)
             elif event.type == KEYDOWN:
                 if event.key == K_q:
-                    keys["left"] = True
+                    player.km["left"] = True
                 if event.key == K_d:
-                    keys["right"] = True
+                    player.km["right"] = True
                 if event.key == K_z:
-                    keys["up"] = True
+                    player.km["up"] = True
                 if event.key == K_s:
-                    keys["down"] = True
+                    player.km["down"] = True
             elif event.type == KEYUP:
                 if event.key == K_q:
-                    keys["left"] = False
+                    player.km["left"] = False
                 if event.key == K_d:
-                    keys["right"] = False
+                    player.km["right"] = False
                 if event.key == K_z:
-                    keys["up"] = False
+                    player.km["up"] = False
                 if event.key == K_s:
-                    keys["down"] = False   
-                    
-        if keys["down"]:
-            camera.pos.y += 100*dt
-        elif keys["up"]:
-            camera.pos.y -= 100*dt
-        elif keys["right"]:
-            camera.pos.x += 100*dt
-        elif keys["left"]:
-            camera.pos.x -= 100*dt 
+                    player.km["down"] = False  
+        
+        colliders = []
+        
+        for y in range(-1 , 2):
+            for x in range(-1 , 2):
+                try:
+                    colliders.extend(tilemap.collider_chunks[f"{int(chunk_pos.x+x)},{int(chunk_pos.y+y)}"])
+                except:
+                        pass
+        
+        player.update(dt)
+        player.move(colliders)
+        
+        camera.pos = player.hitbox.rect.pos + player.hitbox.rect.size / 2 - camera.size / 2
             
         if camera.pos.x < 0:
             camera.pos.x = 0
@@ -70,7 +78,10 @@ def main():
         if camera.pos.y > tilemap.size[1]*32-camera.size.y:
             camera.pos.y = tilemap.size[1]*32-camera.size.y
 
+        
         tilemap.display(camera.render_surf , camera.pos)
+        player.display(camera.render_surf , camera.pos)
+        
         camera.display(screen , screen.get_rect())
         
         pygame.display.flip()
