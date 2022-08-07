@@ -23,7 +23,7 @@ class Enemy():
         self.velocity = Vector2()
         self.view_angle = 60# in degrees
 
-        self.direction = Vector2(3.5, .5).normalize()
+        self.direction = Vector2(1,19)
 
     def update(self, dt, colliders):
         
@@ -59,19 +59,28 @@ class Enemy():
 
         def collide_ray_with_rect(ray, _colliders):
             # TODO: return the closest point to the ray
-            for collider in _colliders:
-                rect = collider.rect
-                print(collider, rect.pos) 
-                line1 = rect.pos.x,rect.pos.y, rect.pos.x, rect.pos.y+rect.size[1]
-                line2 = rect.pos.x+rect.size[0], rect.pos.y, rect.pos.x,rect.pos.y+rect.size[1]
-                point1 = collide_line_with_line(ray, line1)
-                point2 = collide_line_with_line(ray, line2)
-                if point1 != Vector2(): return point1
-                if point2 != Vector2(): return point2
-                return Vector2()
+            for c in colliders:
+                x, y, w, h = c.rect.pos.x, c.rect.pos.y, c.rect.size[0], c.rect.size[1] 
+                lines = [
+                    [x, y, x, y+h], 
+                    [x, y, x+w, y],
+                    [x+w, y, x+w, y+h],
+                    [x, y+h, x+w, y+h],
+                ]
+                min_len = 100000000000
+                for line in lines:
+                    point = collide_line_with_line(ray, line)
+                    if point == Vector2():
+                        continue
+                    new_len = (point - Vector2(ray[0], ray[1])).length() 
+                    if new_len < min_len:
+                        min_len = new_len 
+                        min_len_point = point
+                if point != Vector2(): return min_len_point
+            return Vector2()
 
         radius = 150
-        loop_amount = 10
+        loop_amount = 100
         points = []
         empty_vector = Vector2()
 
@@ -81,9 +90,7 @@ class Enemy():
             x1, y1 = self.ecenter
             x2, y2 = self.ecenter + ray_direction * radius
             r=  (x1, y1, x2, y2)
-            # points.append(Vector2(x1, y1))
-            # points.append(Vector2(x2, y2))
- 
+
             point = collide_ray_with_rect(r, colliders)
             if point != empty_vector:
                 points.append(point)
@@ -133,7 +140,7 @@ class Enemy():
         pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.left*100)
         for point in self.points:
             # print(point)
-            pygame.draw.circle(surface, (0, 0, 255), point-offset, 10, 10)
+            pygame.draw.circle(surface, (0, 0, 255), point-offset, 3, 3)
 
 
 def main():
@@ -211,9 +218,7 @@ def main():
                 except:
                         pass
         
-        print('1', colliders)
         enemy.update(dt, colliders)
-        print('3', colliders)
 
         player.update(dt)
         player.move(colliders)

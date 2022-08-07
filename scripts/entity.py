@@ -61,7 +61,6 @@ class Player:
     
     def get_colliders(self , colliders):
         
-        print(len(colliders))
         collided = []
         for collider in colliders:
 
