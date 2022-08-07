@@ -45,10 +45,10 @@ class Animation:
           self.finished = False
           self.calc_image()
      
-     def play(self , dt , max_fps=60):
+     def play(self , dt):
           if not self.finished:
                if not self.pause:
-                    self.frame += dt * max_fps * self.data.speed
+                    self.frame += dt * 1000 * self.data.speed
                if self.frame > self.data.duration:
                     self.frame = 0 
                     self.finished = False if self.data.infinite else True

@@ -21,6 +21,11 @@ def main():
     font = pygame.font.Font(None , 30)
     
     player = Player(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    player.hitbox_offset = pygame.Vector2(
+        16 - player.hitbox.rect.size.x / 2,
+        48 - player.hitbox.rect.size.y 
+    )
+    
     chunk_pos = 0
     
     while True:

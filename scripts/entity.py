@@ -1,6 +1,6 @@
 import pygame
 
-
+from scripts.animation import *
 from scripts.form import *
 from pygame.locals import *
 
@@ -16,6 +16,16 @@ class Player:
         self.km = {"right":False , "left":False , "up":False , "down":False}
         self.directions = {"right":1 , "left":-1 , "up":-1 , "down":1}
         self.angle = 0
+        
+        self.anim_manager = AnimationManager("./data/player")
+        self.animation = self.anim_manager.get("idle")
+        self.base_texture = pygame.image.load("./data/player.png").convert_alpha()
+        self.texture = self.base_texture
+    
+    def set_animation(self , id : str):
+        
+        if self.animation.data.id != id:
+            self.animation = self.anim_manager.get(id)
     
     def update(self , dt):
         
@@ -34,7 +44,20 @@ class Player:
             result.normalize_ip()
         except:
             pass
-        self.velocity = result * 100 * dt
+        self.velocity = result * 150 * dt
+        
+        if (abs(self.velocity.x)+abs(self.velocity.y) > 0):
+            self.set_animation("running")
+        else:
+            self.set_animation("idle")
+        
+        self.flip = (self.velocity.x < 0)
+        
+        self.animation.play(dt)
+        self.texture = self.animation.get_current_img(self.flip)
+        
+        self.flip = False
+        
     
     def get_colliders(self , colliders):
         
@@ -65,6 +88,7 @@ class Player:
     
     def display(self , surface : pygame.Surface , offset : pygame.Vector2):
         
-        self.hitbox.rect.draw(surface , offset , True)
+        text_pos = self.hitbox.rect.pos - self.hitbox_offset - offset
+        surface.blit(self.texture , text_pos)
         
         
