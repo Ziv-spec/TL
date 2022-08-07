@@ -39,14 +39,35 @@ def get_objects(root : Element):
 
      obj_list = {}
      
-     for obj in object_group.findall("object"):
-          datas = obj.attrib
-          if "name" in datas.keys():
-               name = datas.pop("name")
-               obj_list[name] = datas
+     def get_key(attributes):
+          
+          if "name" in attributes.keys():
+               name = attributes.pop("name")
+               return name
           else:
-               id = datas.pop("id")
-               obj_list[id] = datas
+               id = attributes.pop("id")
+               return id
+     
+     for obj in object_group.findall("object"):
+          properties = obj.find("properties")
+          prop_datas = {}
+          if properties:
+               for p in properties:
+                    attribs = p.attrib
+                    key = get_key(attribs)
+                    prop_datas[key] = attribs
+          
+          attribs = obj.attrib
+          key = get_key(attribs)
+          if not key in obj_list.keys():
+               obj_list[key] = attribs|prop_datas
+          elif not isinstance(obj_list[key] , list):
+               datas = obj_list[key]
+               new_datas = [datas , attribs|prop_datas]
+               obj_list[key] = new_datas
+          else:
+               obj_list[key].append(datas)
+          
      
      return obj_list
 
@@ -76,9 +97,10 @@ class TileMap():
           layer_datas = {}
           self.object_datas = get_objects(root)
           
-          for obj in self.object_datas.values():
-               tid = obj.pop("gid")
-               obj["texture"] = self.tileset[int(tid)-1]
+          for k ,  obj in self.object_datas.items():
+               if not "enemy" in k:
+                    tid = obj.pop("gid")
+                    obj["texture"] = self.tileset[int(tid)-1]
           
           for layer in root.findall("layer"):
                data = layer.find("data").text

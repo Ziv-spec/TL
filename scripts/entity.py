@@ -44,7 +44,7 @@ class Player:
             result.normalize_ip()
         except:
             pass
-        self.velocity = result * 150 * dt
+        self.velocity = result * 130 * dt
         
         if (abs(self.velocity.x)+abs(self.velocity.y) > 0):
             self.set_animation("running")

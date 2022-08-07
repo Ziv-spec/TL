@@ -29,11 +29,17 @@ def main():
     chunk_pos = 0
     
     def sort_object(item):
-        return float(item[1]["y"])+32
+        if not "enemy" in item[0]:
+            return float(item[1]["y"])+32
+        else:
+            return 0
     
+    objectlist = {k : v for k , v in tilemap.object_datas.items()}
     
-    objectlist = tilemap.object_datas.copy()
-    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object)}
+    enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
+    
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
+
     
     while True:
         
