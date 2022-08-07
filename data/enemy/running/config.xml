@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<img speed="1.0" source="enemy_running_sheet.png" frames="100,100,100,100" slice_size="32" infinite="True"/>

@@ -1,235 +1,257 @@
+from ast import excepthandler
+from asyncore import loop
 import pygame 
-from collections import defaultdict
-from os.path import getmtime
-from os import stat
-import platform
+import sys
+import time
+
+from pygame.locals import *
+from scripts.camera import *
+from scripts.entity import *
+from scripts.map import TileMap
+
 from pygame import Vector2
+from math import atan, asin, pi 
 
-# TODO: 
-#  - make tile selection tool thingy
-#  - undo-redo system  
-#  - ui system? probably imgui or something of the like, very simple for specific thigns  
-#  - text system (just have text wrap, and the likes)
-#  - beginning of combat system tomorrow
-#  - make settings even more robust
-#  - make chunck system for tiles
+class Enemy():
+    def __init__(self, hitbox: Collider):
+        self.hitbox = hitbox
+        self.hitbox_offset = pygame.Vector2(0,0)
+        self.v = Vector2()
 
-# DONE: 
-#  - camera to go around the world freely and edit things
+        self.texture = pygame.Surface((32, 32))
+        self.texture.fill((255, 0, 0)) # red
+        self.velocity = Vector2()
+        self.view_angle = 60# in degrees
 
-# for undo and redo
-class CircleBuffer:
-  def __init__(self, buff_size):
-    self.begin = 0 
-    self.end   = 0
-    self.buff_size = buff_size
-    self.buff = [0]*buff_size
-  
-  def next(self):
-    end = (self.end + 1) % self.buff_size
-    if end != self.begin:
-      self.end = end
+        self.direction = Vector2(3.5, .5).normalize()
 
-  def previous(self):
-    end = (self.end - 1 + self.buff_size) % self.buff_size
-    if end != self.begin:
-      self.end = end  
+    def update(self, dt, colliders):
+        
+        # construct enemy view 
+        ewidth, eheight = self.hitbox.rect.size
+        self.ecenter = Vector2(self.hitbox.rect.x+ewidth//2, self.hitbox.rect.y+eheight//2)
 
-  def get_next(self):
-    value = self.buff[self.end]
-    self.next()
-    return value
+        view_angle_radians = self.view_angle*pi/180
+        direction_in_radians = 0
+        if self.direction.x != 0:
+            direction_in_radians = atan(self.direction.y / self.direction.x)
 
-  def get_previous(self):
-    value = self.buff[self.end]
-    self.previous()
-    return value
+        right = direction_in_radians - view_angle_radians/2
+        left  = direction_in_radians + view_angle_radians/2
+        right_direction, left_direction = Vector2(1, (-right)).normalize(), Vector2(1, (-left)).normalize()
+        self.right = right_direction
+        self.left = left_direction
 
-  def set_next(self, item):
-    self.buff[self.end] = item
-    self.next()
+        def learp(a, b, t):
+            return a + t * (b - a)
 
-  def set_previous(self, item):
-    self.buff[self.end] = item
-    self.previous()
+        def collide_line_with_line(line1, line2):
+            x1, y1, x2, y2 = line1
+            x3, y3, x4, y4 = line2
+            
+            uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+            uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+            if (uA >= 0 and uA <= 1 and uB >= 0 and uB <= 1): 
+                intersectionX = x1 + (uA * (x2-x1))
+                intersectionY = y1 + (uA * (y2-y1))
+                return Vector2(intersectionX, intersectionY)
+            return Vector2()
 
-class Context: 
-  def __init__(self, display, events):
-    self.display = display 
-    self.settings = defaultdict(lambda: False)  # rethink this
-    self.undo_buffer = CircleBuffer(256)
+        def collide_ray_with_rect(ray, _colliders):
+            # TODO: return the closest point to the ray
+            for collider in _colliders:
+                rect = collider.rect
+                print(collider, rect.pos) 
+                line1 = rect.pos.x,rect.pos.y, rect.pos.x, rect.pos.y+rect.size[1]
+                line2 = rect.pos.x+rect.size[0], rect.pos.y, rect.pos.x,rect.pos.y+rect.size[1]
+                point1 = collide_line_with_line(ray, line1)
+                point2 = collide_line_with_line(ray, line2)
+                if point1 != Vector2(): return point1
+                if point2 != Vector2(): return point2
+                return Vector2()
 
-    self.events = events 
-    self.events_processed = defaultdict(lambda: False) 
-    self.dt = 0
-    self.world = [[0]*100 for i in range(100)]
-    self.camera = Vector2()
-    self.tile_size = (32, 32)
+        radius = 150
+        loop_amount = 10
+        points = []
+        empty_vector = Vector2()
+
+        for i in range(0, loop_amount):
+            t = i/loop_amount
+            ray_direction = learp(right_direction, left_direction, t)
+            x1, y1 = self.ecenter
+            x2, y2 = self.ecenter + ray_direction * radius
+            r=  (x1, y1, x2, y2)
+            # points.append(Vector2(x1, y1))
+            # points.append(Vector2(x2, y2))
+ 
+            point = collide_ray_with_rect(r, colliders)
+            if point != empty_vector:
+                points.append(point)
+        self.points = points
 
 
-def load_settings(path, settings):
+        # direction = Vector2(player.hitbox.rect.x, player.hitbox.rect.y) - Vector2(self.hitbox.rect.x, self.hitbox.rect.y)
+        # if direction.x**2 + direction.y**2 > 0:
+        #     direction = direction.normalize()
+        # self.a = direction*100*dt
+        # self.velocity += self.a * dt
 
-  def eat_trash(line, begin_index):
-    for j in range(begin_index, len(line)):
-      if line[j] != ' ' or line[j] != '\t' or line[j] != '\r':
-        return j
-    return max(len(line)-1, 0)
-  
-  def error(msg, path, line):
-    print(path + ":", msg, f"at {line}")
+
+
+    def get_colliders(self , colliders):
+        collided = []
+        for collider in colliders:
+            if self.hitbox.collide(collider):
+                collided.append(collider)
+        
+        return collided
+
+    def move(self , colliders):
+        
+        self.hitbox.rect.x += self.velocity.x
+        collided = self.get_colliders(colliders)
+        for collider in collided:
+            if self.velocity.x < 0:
+                self.hitbox.rect.x = collider.rect.right
+            elif self.velocity.x > 0:
+                self.hitbox.rect.right = collider.rect.x
+        
+        self.hitbox.rect.y += self.velocity.y
+        collided = self.get_colliders(colliders)
+        for collider in collided:
+            if self.velocity.y < 0:
+                self.hitbox.rect.y = collider.rect.bottom
+            elif self.velocity.y > 0:
+                self.hitbox.rect.bottom = collider.rect.y
     
-  with open(path, 'rt') as f:
-    data = f.read()
-    lines = data.split("\n")
-    for i, line in enumerate(lines):
-      
-      if len(line) == 0:
-        continue
-      
-      keyword = ""
-      end = len(line) 
-      begin = eat_trash(line, 0)
-      for j in range(begin, len(line)):
-        if line[j].isalpha() or line[j] == '_' or line[j].isdecimal():
-          keyword += line[j]
-        else: 
-          end = j+1
-          break
+    def display(self , surface : pygame.Surface , offset : pygame.Vector2):
+        text_pos = self.hitbox.rect.pos - self.hitbox_offset - offset
+        surface.blit(self.texture , text_pos)
 
-      begin = eat_trash(line, end)
-      if line[begin] != '=':
-        error("error expected assignment of value", path, i)
-        return False
+        self.ecenter -= offset
+        pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.right*100)
+        pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.left*100)
+        for point in self.points:
+            # print(point)
+            pygame.draw.circle(surface, (0, 0, 255), point-offset, 10, 10)
 
-      value = None 
-      end = begin + 1
-      begin = eat_trash(line, end)
-      if line[begin+1].isdigit():
-        value = float(line[begin+1:])
-      else: 
-        error("not implemented value support", path, i)
-        return False
-
-      settings[keyword] = value
-  
-  return True
 
 def main():
+    
+    pygame.init()
+
+    screen = pygame.display.set_mode([800 , 600] , vsync=True)
+    camera = Camera([0,0],[400 , 300])
+    
+    tilemap = TileMap(chunk_size=[5,5])
+    tilemap.load_map("./data/maps/level-test.tmx")
+    timepoint = time.time()
+    font = pygame.font.Font(None , 30)
+    
+    player = Player(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    player.hitbox_offset = pygame.Vector2(
+        16 - player.hitbox.rect.size.x / 2,
+        48 - player.hitbox.rect.size.y 
+    )
+    
+    chunk_pos = 0
+    
+    def sort_object(item):
+        if not "enemy" in item[0]:
+            return float(item[1]["y"])+32
+        else:
+            return 0
+    
+    objectlist = {k : v for k , v in tilemap.object_datas.items()}
+    
+    enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
+    
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
+
+    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    
+    while True:
+        
+        chunk_pos = player.hitbox.rect.pos // (4*32)
+        dt = time.time() - timepoint
+        timepoint = time.time()
+        
+        camera.erase_surf([95, 138, 163])
+        
+        for event in pygame.event.get():
+            
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit(0)
+            elif event.type == KEYDOWN:
+                if event.key == K_a:
+                    player.km["left"] = True
+                if event.key == K_d:
+                    player.km["right"] = True
+                if event.key == K_w:
+                    player.km["up"] = True
+                if event.key == K_s:
+                    player.km["down"] = True
+            elif event.type == KEYUP:
+                if event.key == K_a:
+                    player.km["left"] = False
+                if event.key == K_d:
+                    player.km["right"] = False
+                if event.key == K_w:
+                    player.km["up"] = False
+                if event.key == K_s:
+                    player.km["down"] = False  
+        
+        colliders = []
+        
+        for y in range(-1 , 2):
+            for x in range(-1 , 2):
+                try:
+                    colliders.extend(tilemap.collider_chunks[f"{int(chunk_pos.x+x)},{int(chunk_pos.y+y)}"])
+                except:
+                        pass
+        
+        print('1', colliders)
+        enemy.update(dt, colliders)
+        print('3', colliders)
+
+        player.update(dt)
+        player.move(colliders)
+        
+        camera.pos = player.hitbox.rect.pos + player.hitbox.rect.size / 2 - camera.size / 2
+            
+        if camera.pos.x < 0:
+            camera.pos.x = 0
+        if camera.pos.x > tilemap.size[0]*32-camera.size.x:
+            camera.pos.x = tilemap.size[0]*32-camera.size.x
+        if camera.pos.y < 0:
+            camera.pos.y = 0
+        if camera.pos.y > tilemap.size[1]*32-camera.size.y:
+            camera.pos.y = tilemap.size[1]*32-camera.size.y
+
+        
+        tilemap.display(camera.render_surf , camera.pos)
+        
+        y = 0
+        player_displayed = False
+        for value in objectlist.values():
+            y = float(value["y"])+float(value["height"])
+            if not player_displayed and y > player.hitbox.rect.bottom:
+                player.display(camera.render_surf , camera.pos)
+                player_displayed = True
+            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+        
+        if not player_displayed:
+            player.display(camera.render_surf , camera.pos)
+            player_displayed = True
 
 
-  size = (800, 600) # TODO: check which window size is acceptabe
-  running = True
-  FPS =  60
-  clock  = pygame.time.Clock()
-  display: pygame.Surface = pygame.display.set_mode(size)
-  bg_color = (255, 255, 255) 
-
-  context = Context(display, None)
-
-  modified_date, last_modified_date = None, None
-  settings_file_path = "data/settings.txt"
-
-  dt = 1/FPS
-  while running:
-
-    display.fill(bg_color)
-    context.events = pygame.event.get()
-    context.dt = dt
-
-    # find the modified date of the settings file 
-    if platform.system() == "Windows": modified_date = getmtime(settings_file_path)
-    else: modified_date = stat(settings_file_path).st_mtime
-
-    if last_modified_date != modified_date:
-      success = load_settings(settings_file_path, context.settings)
-      if not success: 
-        print("NOTE: could not load all settings, some things might break.")
+        enemy.display(camera.render_surf , camera.pos)
+        
+        camera.display(screen , screen.get_rect())
+        screen.blit(font.render(f"player position : {int(player.hitbox.rect.x)} , {int(player.hitbox.rect.y)}" , True , [255 , 0 , 0]) , [0,0])
+        pygame.display.flip()
 
 
-    # TODO: context switch whenever needed system
-    running = editor(context)
-    if not running: 
-      return
-
-    pygame.display.update()
-    last_modified_date = modified_date
-    dt = clock.tick(FPS) * 0.001
-
-
-def editor(context: Context) -> bool:
-
-  tile_size = context.settings['tile_size']
-  tile_size = (int(tile_size), int(tile_size))
-  tile_surf = pygame.Surface(tile_size)
-  dt = context.dt
-
-  def screen_to_world_space(context, screen_pos):
-    tile_width, tile_height = context.tile_size
-    cx, cy = context.camera 
-    return (screen_pos[0]-cx)//tile_width, (screen_pos[1]-cy)//tile_height
-
-  mouse = pygame.mouse.get_pos()
-  cursor_position = screen_to_world_space(context, mouse) 
-
-  for event in context.events:
-    if event.type == pygame.QUIT:
-      pygame.quit() # de-initialize pygame resources
-      return False
-    if event.type == pygame.MOUSEBUTTONDOWN:
-      if event.button == 1:
-        context.events_processed['left_click'] = True
-    if event.type == pygame.MOUSEBUTTONUP:
-      if event.button == 1:
-         context.events_processed['left_click'] = False
-    if event.type == pygame.KEYDOWN:
-      if event.key == pygame.K_a:
-        context.events_processed['a'] = True
-      elif event.key == pygame.K_w:
-        context.events_processed['w'] = True
-      elif event.key == pygame.K_s:
-        context.events_processed['s'] = True
-      elif event.key == pygame.K_d:
-        context.events_processed['d'] = True
-      elif event.key == pygame.K_z:
-        last_action = context.undo_buffer.get_previous()
-      elif event.key == pygame.K_y:
-        context.undo_buffer.get_next()
-
-    if event.type == pygame.KEYUP:
-      if event.key == pygame.K_a:
-        context.events_processed['a'] = False
-      elif event.key == pygame.K_w:
-        context.events_processed['w'] = False
-      elif event.key == pygame.K_s:
-        context.events_processed['s'] = False
-      elif event.key == pygame.K_d:
-        context.events_processed['d'] = False
-      
-  
-  v = 300
-  x, y = v*dt, v*dt
-  context.camera += Vector2(-context.events_processed['a']*x + context.events_processed['d']*x, -context.events_processed['w']*y + context.events_processed['s']*y)
-      
-  if context.events_processed['left_click']:
-    context.world[int((mouse[0]+context.camera[0])//tile_size[0])][(int(mouse[1]+context.camera[1])//tile_size[1])] = 1
-  context.display.blit(tile_surf, (int((mouse[0]//tile_size[0])*tile_size[0]), int((mouse[1]//tile_size[1])*tile_size[1])))
-
-  for i, line in enumerate(context.world):
-    for j, tile in enumerate(line):
-      if tile == 1:
-        context.display.blit(tile_surf, (round(i*tile_size[0]-context.camera[0]), round(j*tile_size[1]-context.camera[1])))
-
-  return True 
-
-
-
-import time
 if __name__ == "__main__":
-  start = time.time()
-  pygame.init() # TODO: check whether I need this
-  print(time.time() - start)
-
-  main()
-
-
-
+    main()
