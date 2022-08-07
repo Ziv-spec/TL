@@ -33,6 +33,23 @@ def load_tileset(tsx_path):
      
      return tiles , tile_size[0]
 
+def get_objects(root : Element):
+     
+     object_group = root.find("objectgroup")
+
+     obj_list = {}
+     
+     for obj in object_group.findall("object"):
+          datas = obj.attrib
+          if "name" in datas.keys():
+               name = datas.pop("name")
+               obj_list[name] = datas
+          else:
+               id = datas.pop("id")
+               obj_list[id] = datas
+     
+     return obj_list
+
 class TileMap():
      
      def __init__(self , chunk_size=[4,4]):
@@ -41,7 +58,6 @@ class TileMap():
           self.size = [0,0]
           self.collider_chunks = {}
           self.layers = {}
-          self.objects = {}
           self.chunk_size = chunk_size
           self.tilesize = 0
           
@@ -58,8 +74,12 @@ class TileMap():
           self.size[1] = int(root.get("height"))
           
           layer_datas = {}
+          self.object_datas = get_objects(root)
           
-          # preparing the layers , by putting all values in a layer ,  into a 2D array
+          for obj in self.object_datas.values():
+               tid = obj.pop("gid")
+               obj["texture"] = self.tileset[int(tid)-1]
+          
           for layer in root.findall("layer"):
                data = layer.find("data").text
                data = data.strip("\n").splitlines()

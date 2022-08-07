@@ -28,6 +28,13 @@ def main():
     
     chunk_pos = 0
     
+    def sort_object(item):
+        return float(item[1]["y"])+32
+    
+    
+    objectlist = tilemap.object_datas.copy()
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object)}
+    
     while True:
         
         chunk_pos = player.hitbox.rect.pos // (4*32)
@@ -85,10 +92,22 @@ def main():
 
         
         tilemap.display(camera.render_surf , camera.pos)
-        player.display(camera.render_surf , camera.pos)
+        
+        y = 0
+        player_displayed = False
+        for value in objectlist.values():
+            y = float(value["y"])+float(value["height"])
+            if not player_displayed and y > player.hitbox.rect.bottom:
+                player.display(camera.render_surf , camera.pos)
+                player_displayed = True
+            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+        
+        if not player_displayed:
+            player.display(camera.render_surf , camera.pos)
+            player_displayed = True
         
         camera.display(screen , screen.get_rect())
-        
+        screen.blit(font.render(f"player position : {int(player.hitbox.rect.x)} , {int(player.hitbox.rect.y)}" , True , [255 , 0 , 0]) , [0,0])
         pygame.display.flip()
 
 
