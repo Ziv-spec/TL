@@ -10,7 +10,7 @@ from scripts.entity import *
 from scripts.map import TileMap
 
 from pygame import Vector2
-from math import atan, asin, pi 
+from math import atan, pi 
 
 class Enemy():
     def __init__(self, hitbox: Collider):
@@ -21,11 +21,13 @@ class Enemy():
         self.texture = pygame.Surface((32, 32))
         self.texture.fill((255, 0, 0)) # red
         self.velocity = Vector2()
-        self.view_angle = 60# in degrees
+        self.view_angle = 80 # in degrees
 
-        self.direction = Vector2(1,19)
+        self.direction = Vector2(1,2)
+        self.colliders = None
 
     def update(self, dt, colliders):
+        self.colliders = colliders
         
         # construct enemy view 
         ewidth, eheight = self.hitbox.rect.size
@@ -58,8 +60,9 @@ class Enemy():
             return Vector2()
 
         def collide_ray_with_rect(ray, _colliders):
-            # TODO: return the closest point to the ray
-            for c in colliders:
+            min_len = 100000000000
+            min_len_point = Vector2()
+            for c in _colliders:
                 x, y, w, h = c.rect.pos.x, c.rect.pos.y, c.rect.size[0], c.rect.size[1] 
                 lines = [
                     [x, y, x, y+h], 
@@ -67,7 +70,6 @@ class Enemy():
                     [x+w, y, x+w, y+h],
                     [x, y+h, x+w, y+h],
                 ]
-                min_len = 100000000000
                 for line in lines:
                     point = collide_line_with_line(ray, line)
                     if point == Vector2():
@@ -76,14 +78,13 @@ class Enemy():
                     if new_len < min_len:
                         min_len = new_len 
                         min_len_point = point
-                if point != Vector2(): return min_len_point
-            return Vector2()
+            return min_len_point
 
-        radius = 150
-        loop_amount = 100
+        radius = 1500
+        loop_amount = 10
+
         points = []
         empty_vector = Vector2()
-
         for i in range(0, loop_amount):
             t = i/loop_amount
             ray_direction = learp(right_direction, left_direction, t)
@@ -95,7 +96,6 @@ class Enemy():
             if point != empty_vector:
                 points.append(point)
         self.points = points
-
 
         # direction = Vector2(player.hitbox.rect.x, player.hitbox.rect.y) - Vector2(self.hitbox.rect.x, self.hitbox.rect.y)
         # if direction.x**2 + direction.y**2 > 0:
@@ -138,9 +138,19 @@ class Enemy():
         self.ecenter -= offset
         pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.right*100)
         pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.left*100)
+        self.points = [point-offset for point in self.points]
+        self.points.append(self.ecenter)
+
+
+        if len(self.points) >= 2:
+            pygame.draw.polygon(surface, (255, 0, 0), self.points, 2)
+
         for point in self.points:
-            # print(point)
-            pygame.draw.circle(surface, (0, 0, 255), point-offset, 3, 3)
+            pygame.draw.circle(surface, (0, 0, 255), point, 3, 3)
+        
+        # for c in self.colliders:
+        #     pygame.draw.rect(surface, (0,255,255), (c.rect.x-offset.x, c.rect.y-offset.y, c.rect.size[0], c.rect.size[1]), 5)
+        
 
 
 def main():
@@ -217,8 +227,13 @@ def main():
                     colliders.extend(tilemap.collider_chunks[f"{int(chunk_pos.x+x)},{int(chunk_pos.y+y)}"])
                 except:
                         pass
+
+        all_colliders = []
+        for chunck in tilemap.collider_chunks.values():
+            all_colliders.extend(chunck)
+
+        enemy.update(dt, all_colliders)
         
-        enemy.update(dt, colliders)
 
         player.update(dt)
         player.move(colliders)
