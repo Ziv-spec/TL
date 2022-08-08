@@ -41,9 +41,10 @@ def main():
     objectlist = {k : v for k , v in tilemap.object_datas.items()}
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
-    
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
+    
+    
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
     enemy.set_direction(pygame.Vector2(0 , -1))
     
@@ -53,7 +54,14 @@ def main():
     
     level_ended = False
     
-    font = Font("./data/fonts/large_font.png")
+    # font = Font("./data/fonts/large_font.png")
+    
+    end_level = {
+        "surface":pygame.Surface([400 , 300] , SRCALPHA),
+        "alpha":0
+    }
+    
+    end_level["surface"].fill([0,0,0,255])
     
     while True:
         
@@ -139,7 +147,11 @@ def main():
             if camera.pos.y > tilemap.size[1]*32-camera.size.y:
                 camera.pos.y = tilemap.size[1]*32-camera.size.y
         else:
-            ...       
+            
+            if end_level["alpha"] > 50:
+                end_level["alpha"] += 1
+            
+            end_level["surface"].set_alpha(end_level["alpha"])
         
         tilemap.display(camera.render_surf , camera.pos)
         
@@ -163,6 +175,9 @@ def main():
         
         for collider in colliders:
             collider.rect.draw(camera.render_surf , camera.pos , True)
+            
+        if level_ended:
+            camera.render_surf.blit(end_level["surface"] , [0,0])
         
         camera.render_surf.blit(black_filter , [0,0])
         
