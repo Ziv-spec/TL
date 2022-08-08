@@ -34,7 +34,7 @@ def main():
     chunk_pos = 0
     
     def sort_object(item):
-        if not "enemy" in item[0]:
+        if "chest" in item[0]:
             return float(item[1]["y"])+32
         else:
             return 0

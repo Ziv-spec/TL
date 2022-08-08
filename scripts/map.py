@@ -57,19 +57,20 @@ def get_objects(root : Element):
                     key = get_key(attribs)
                     prop_datas[key] = attribs
           
-          attribs = obj.attrib
-          key = get_key(attribs)
+          attributes = obj.attrib
+          key = get_key(attributes)
           if not key in obj_list.keys():
-               obj_list[key] = attribs|prop_datas
+               obj_list[key] = attributes|prop_datas
           elif not isinstance(obj_list[key] , list):
                datas = obj_list[key]
-               new_datas = [datas , attribs|prop_datas]
+               new_datas = [datas , attributes|prop_datas]
                obj_list[key] = new_datas
           else:
-               obj_list[key].append(datas)
+               obj_list[key].append(attributes|prop_datas)
           
      
      return obj_list
+
 
 class TileMap():
      
@@ -97,10 +98,10 @@ class TileMap():
           layer_datas = {}
           self.object_datas = get_objects(root)
           
-          # for k ,  obj in self.object_datas.items():
-          #      if not "enemy" in k:
-          #           tid = obj.pop("gid")
-          #           obj["texture"] = self.tileset[int(tid)-1]
+          for k ,  obj in self.object_datas.items():
+               if "chest" in k:
+                    tid = obj.pop("gid")
+                    obj["texture"] = self.tileset[int(tid)-1]
           
           for layer in root.findall("layer"):
                data = layer.find("data").text
