@@ -217,13 +217,14 @@ class Enemy():
         delta = Vector2(x, y) - Vector2(pcx, pcy) 
         delta.x = int(delta.x)
         delta.y = int(delta.y)
+
         if delta == Vector2():
             self.current_index += 1
             if self.current_index >= len(self.path):
                 self.current_index = 0
         else:
             direction = -delta.normalize() 
-            self.velocity = direction * 10 * dt 
+            self.velocity = direction * 130 * dt 
         
             
     def get_colliders(self , colliders):
