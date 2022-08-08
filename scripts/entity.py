@@ -24,6 +24,8 @@ class Player:
         self.animation = self.anim_manager.get("idle")
         self.base_texture = pygame.image.load("./data/player.png").convert_alpha()
         self.texture = self.base_texture
+        
+        self.hidden = False
     
     def set_animation(self , id : str):
         
@@ -58,6 +60,9 @@ class Player:
         
         self.animation.play(dt)
         self.texture = self.animation.get_current_img(self.flip)
+        
+        if self.hidden:
+            self.texture.set_alpha(100)
         
         self.flip = False
         
