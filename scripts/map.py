@@ -98,7 +98,7 @@ class TileMap():
           self.object_datas = get_objects(root)
           
           for k ,  obj in self.object_datas.items():
-               if not "enemy" in k:
+               if "chest" in k:
                     tid = obj.pop("gid")
                     obj["texture"] = self.tileset[int(tid)-1]
           

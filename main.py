@@ -41,10 +41,11 @@ def main():
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
     
-    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
     enemy.set_direction(pygame.Vector2(0 , -1))
+    
     while True:
         
         chunk_pos = player.hitbox.rect.pos // (4*32)
