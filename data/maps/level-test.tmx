@@ -164,7 +164,11 @@
 </data>
  </layer>
  <objectgroup id="5" name="objects" offsetx="0.000355114" offsety="-0.00461648">
-  <object id="1" name="chest1" type="chest" gid="39" x="576" y="1152" width="32" height="32"/>
+  <object id="1" name="chest1" type="chest" gid="39" x="576" y="1152" width="32" height="32">
+   <properties>
+    <property name="tea recipe" type="bool" value="true"/>
+   </properties>
+  </object>
   <object id="6" name="enemy1" type="enemy_path" x="736" y="768" width="32" height="32">
    <properties>
     <property name="path" type="object" value="7"/>
