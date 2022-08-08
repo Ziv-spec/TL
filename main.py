@@ -167,7 +167,7 @@ def main():
     chunk_pos = 0
     
     def sort_object(item):
-        if not "enemy" in item[0]:
+        if "chest" in item[0]:
             return float(item[1]["y"])+32
         else:
             return 0
@@ -176,7 +176,7 @@ def main():
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
     
-    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
     
