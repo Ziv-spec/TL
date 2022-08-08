@@ -246,8 +246,11 @@ class Enemy():
         # calc position in map ceil no floor
 
         # move towards next position
+
+
         rect = self.hitbox.rect
         x, y = rect.pos + rect.size/2
+        print(x, y)
 
         # collision detection
         collided = self.get_colliders(colliders)
@@ -265,6 +268,9 @@ class Enemy():
             elif self.velocity.y > 0:
                 self.hitbox.rect.bottom = collider.rect.y
         
+
+
+   
     def display_light(self , surface : pygame.Surface , offset=pygame.Vector2(0,0)):
         light_size = pygame.Vector2([self.view_distance*2]*2)
         light_offset = offset - (self.rect.size / 2 - light_size / 2)
