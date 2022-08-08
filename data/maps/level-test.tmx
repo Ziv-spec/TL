@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="11">
+<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="12">
  <tileset firstgid="1" source="../tileset.tsx"/>
  <layer id="2" name="rock" width="50" height="50">
   <data encoding="csv">
@@ -163,7 +163,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="5" name="objects" offsetx="-9.63636" offsety="3.27273">
+ <objectgroup id="5" name="objects" offsetx="0.000355114" offsety="-0.00461648">
   <object id="1" name="chest1" type="chest" gid="39" x="448" y="672" width="32" height="32"/>
   <object id="6" name="enemy1" type="enemy_path" x="736" y="768" width="32" height="32">
    <properties>
@@ -183,11 +183,12 @@
     <property name="startpoint" type="bool" value="false"/>
    </properties>
   </object>
-  <object id="10" name="enemy1" type="enemy_path" x="736" y="832" width="32" height="32">
+  <object id="10" name="enemy1" type="enemy_pa" x="736" y="832" width="32" height="32">
    <properties>
     <property name="path" type="object" value="6"/>
     <property name="startpoint" type="bool" value="false"/>
    </properties>
   </object>
+  <object id="11" name="player_spawn" x="416" y="1280" width="32" height="32"/>
  </objectgroup>
 </map>

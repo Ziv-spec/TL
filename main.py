@@ -9,142 +9,6 @@ from scripts.camera import *
 from scripts.entity import *
 from scripts.map import TileMap
 
-from pygame import Vector2
-from math import tan, pi 
-
-class Enemy():
-    def __init__(self, hitbox: Collider):
-        self.hitbox = hitbox
-        self.hitbox_offset = pygame.Vector2(0,0)
-        self.v = Vector2()
-
-        self.texture = pygame.Surface((32, 32))
-        self.texture.fill((255, 0, 0)) # red
-        self.velocity = Vector2()
-        self.view_angle = 60# in degrees
-
-        self.direction = 0
-        self.colliders = None
-
-    def update(self, dt, colliders):
-        self.colliders = colliders
-        
-        # construct enemy view 
-        ewidth, eheight = self.hitbox.rect.size
-        self.ecenter = Vector2(self.hitbox.rect.x+ewidth//2, self.hitbox.rect.y+eheight//2)
-        
-        self.direction+=.1
-
-        view_angle_radians = (self.view_angle*pi)/180
-        self.direction_in_radians = (self.direction*pi)/180
-        right = self.direction_in_radians - view_angle_radians/2
-        left  = self.direction_in_radians + view_angle_radians/2
-
-        self.right , self.left = Vector2(1, -tan(right)).normalize(), Vector2(1, -tan(left)).normalize()
-
-        def learp(a, b, t):
-            return a + t * (b - a)
-
-        def collide_line_with_line(line1, line2):
-            # print(line1, line2)
-            x1, y1, x2, y2 = line1
-            x3, y3, x4, y4 = line2
-            
-            uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / (((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))+.001)
-            uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / (((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))+.001)
-            if (uA >= 0 and uA <= 1 and uB >= 0 and uB <= 1): 
-                intersectionX = x1 + (uA * (x2-x1))
-                intersectionY = y1 + (uA * (y2-y1))
-                return Vector2(intersectionX, intersectionY)
-            return Vector2()
-
-        def collide_ray_with_rect(ray, _colliders):
-            min_len = 100000000000
-            min_len_point = Vector2()
-            for c in _colliders:
-                x, y, w, h = c.rect.pos.x, c.rect.pos.y, c.rect.size[0], c.rect.size[1] 
-                lines = [
-                    [x, y, x, y+h], 
-                    [x, y, x+w, y],
-                    [x+w, y, x+w, y+h],
-                    [x, y+h, x+w, y+h],
-                ]
-                for line in lines:
-                    point = collide_line_with_line(ray, line)
-                    if point == Vector2():
-                        continue
-                    new_len = (point - Vector2(ray[0], ray[1])).length() 
-                    if new_len < min_len:
-                        min_len = new_len 
-                        min_len_point = point
-            return min_len_point
-
-        radius = 1500
-        loop_amount = 11
-        # raycast within view
-        points = []
-        empty_vector = Vector2()
-        for i in range(0, loop_amount):
-            t = i/loop_amount
-            ray_direction = learp(self.right, self.left, t)
-            x1, y1 = self.ecenter
-            x2, y2 = self.ecenter + ray_direction * radius
-            r=  (x1, y1, x2, y2)
-
-            point = collide_ray_with_rect(r, colliders)
-            if point != empty_vector:
-                points.append(point)
-        self.points = points
-
-
-    def get_colliders(self , colliders):
-        collided = []
-        for collider in colliders:
-            if self.hitbox.collide(collider):
-                collided.append(collider)
-        
-        return collided
-
-    def move(self , colliders):
-        
-        self.hitbox.rect.x += self.velocity.x
-        collided = self.get_colliders(colliders)
-        for collider in collided:
-            if self.velocity.x < 0:
-                self.hitbox.rect.x = collider.rect.right
-            elif self.velocity.x > 0:
-                self.hitbox.rect.right = collider.rect.x
-        
-        self.hitbox.rect.y += self.velocity.y
-        collided = self.get_colliders(colliders)
-        for collider in collided:
-            if self.velocity.y < 0:
-                self.hitbox.rect.y = collider.rect.bottom
-            elif self.velocity.y > 0:
-                self.hitbox.rect.bottom = collider.rect.y
-    
-    def display(self , surface : pygame.Surface , offset : pygame.Vector2):
-        text_pos = self.hitbox.rect.pos - self.hitbox_offset - offset
-        surface.blit(self.texture , text_pos)
-
-        self.ecenter -= offset
-        pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.right*100)
-        pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.left*100)
-
-        self.points = [point-offset for point in self.points]
-        self.points.append(self.ecenter)
-        self.points.append(self.left+self.ecenter)
-        self.points.append(self.right+self.ecenter)
-
-        if len(self.points) >= 2:
-            pygame.draw.polygon(surface, (255, 0, 0), self.points, 2)
-        for point in self.points:
-            pygame.draw.circle(surface, (0, 0, 255), point, 3, 3)
-        
-        # for c in self.colliders:
-        #     pygame.draw.rect(surface, (0,255,255), (c.rect.x-offset.x, c.rect.y-offset.y, c.rect.size[0], c.rect.size[1]), 5)
-        
-
 
 def main():
     
@@ -152,6 +16,9 @@ def main():
 
     screen = pygame.display.set_mode([800 , 600] , vsync=True)
     camera = Camera([0,0],[400 , 300])
+    
+    black_filter = pygame.Surface([400 , 300] , SRCALPHA)
+    black_filter.fill([0,0,0,120])
     
     tilemap = TileMap(chunk_size=[5,5])
     tilemap.load_map("./data/maps/level-test.tmx")
@@ -178,7 +45,8 @@ def main():
     
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
-    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
+    enemy.set_direction(pygame.Vector2(0 , -1))
     
     while True:
         
@@ -186,7 +54,8 @@ def main():
         dt = time.time() - timepoint
         timepoint = time.time()
         
-        camera.erase_surf([95, 138, 163])
+        camera.erase_surf([38, 27, 74])
+        black_filter.fill([0,0,0,120])
         
         for event in pygame.event.get():
             
@@ -220,16 +89,18 @@ def main():
                     colliders.extend(tilemap.collider_chunks[f"{int(chunk_pos.x+x)},{int(chunk_pos.y+y)}"])
                 except:
                         pass
-
+        
         all_colliders = []
         for chunck in tilemap.collider_chunks.values():
             all_colliders.extend(chunck)
 
-        enemy.update(dt, all_colliders)
-        
-
         player.update(dt)
         player.move(colliders)
+
+        all_colliders.append(player.hitbox)
+        enemy.update(dt, all_colliders)
+        enemy.move(colliders)
+
         
         camera.pos = player.hitbox.rect.pos + player.hitbox.rect.size / 2 - camera.size / 2
             
@@ -257,9 +128,12 @@ def main():
         if not player_displayed:
             player.display(camera.render_surf , camera.pos)
             player_displayed = True
-
-
+        
         enemy.display(camera.render_surf , camera.pos)
+        
+        enemy.display_light(black_filter , camera.pos)
+        
+        camera.render_surf.blit(black_filter , [0,0])
         
         camera.display(screen , screen.get_rect())
         screen.blit(font.render(f"player position : {int(player.hitbox.rect.x)} , {int(player.hitbox.rect.y)}" , True , [255 , 0 , 0]) , [0,0])
