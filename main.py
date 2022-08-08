@@ -54,14 +54,19 @@ def main():
     
     level_ended = False
     
-    # font = Font("./data/fonts/large_font.png")
+    font = Font("./data/fonts/large_font.png" , [255]*3)
+    finished_text = Text(font , "Congrulations ! You found the tea recipe !")
+    finished_text.origin = finished_text.size/2
+    finished_text.pos = pygame.Vector2(200 , 100)
     
     end_level = {
         "surface":pygame.Surface([400 , 300] , SRCALPHA),
         "alpha":0
     }
     
-    end_level["surface"].fill([0,0,0,255])
+    end_level["surface"].fill([0,0,0])
+    finished_text.display(end_level["surface"])
+    
     
     while True:
         
@@ -148,10 +153,9 @@ def main():
                 camera.pos.y = tilemap.size[1]*32-camera.size.y
         else:
             
-            if end_level["alpha"] > 50:
-                end_level["alpha"] += 1
-            
-            end_level["surface"].set_alpha(end_level["alpha"])
+            if end_level["alpha"] < 180:
+                end_level["alpha"] += 70 * dt
+
         
         tilemap.display(camera.render_surf , camera.pos)
         
@@ -175,14 +179,17 @@ def main():
         
         for collider in colliders:
             collider.rect.draw(camera.render_surf , camera.pos , True)
+           
+        camera.render_surf.blit(black_filter , [0,0])
             
         if level_ended:
-            camera.render_surf.blit(end_level["surface"] , [0,0])
+            surf = end_level['surface'].copy()
+            surf.set_alpha(0+end_level["alpha"])
+            camera.render_surf.blit(surf , [0,0])
         
-        camera.render_surf.blit(black_filter , [0,0])
         
         camera.display(screen , screen.get_rect())
-        screen.blit(font.render(f"player position : {int(player.hitbox.rect.x)} , {int(player.hitbox.rect.y)}" , True , [255 , 0 , 0]) , [0,0])
+        
         pygame.display.flip()
 
 
