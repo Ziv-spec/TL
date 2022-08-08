@@ -168,6 +168,9 @@ def main():
     screen = pygame.display.set_mode([800 , 600] , vsync=True)
     camera = Camera([0,0],[400 , 300])
     
+    black_filter = pygame.Surface([400 , 300] , SRCALPHA)
+    black_filter.fill([0,0,0,120])
+    
     tilemap = TileMap(chunk_size=[5,5])
     tilemap.load_map("./data/maps/level-test.tmx")
     timepoint = time.time()
@@ -191,12 +194,10 @@ def main():
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
     
-    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
+    objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
-    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
-
-    epath = [] 
-    enemy.set_path(epath)
+    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
+    enemy.set_direction(pygame.Vector2(0 , -1))
     
     while True:
         
@@ -204,7 +205,8 @@ def main():
         dt = time.time() - timepoint
         timepoint = time.time()
         
-        camera.erase_surf([95, 138, 163])
+        camera.erase_surf([38, 27, 74])
+        black_filter.fill([0,0,0,120])
         
         for event in pygame.event.get():
             
@@ -238,17 +240,18 @@ def main():
                     colliders.extend(tilemap.collider_chunks[f"{int(chunk_pos.x+x)},{int(chunk_pos.y+y)}"])
                 except:
                         pass
-
+        
         all_colliders = []
         for chunck in tilemap.collider_chunks.values():
             all_colliders.extend(chunck)
 
-        enemy.update(dt, all_colliders)
-        enemy.move(colliders)
-        
-
         player.update(dt)
         player.move(colliders)
+
+        all_colliders.append(player.hitbox)
+        enemy.update(dt, all_colliders)
+        enemy.move(colliders)
+
         
         camera.pos = player.hitbox.rect.pos + player.hitbox.rect.size / 2 - camera.size / 2
             
@@ -276,9 +279,12 @@ def main():
         if not player_displayed:
             player.display(camera.render_surf , camera.pos)
             player_displayed = True
-
-
+        
         enemy.display(camera.render_surf , camera.pos)
+        
+        enemy.display_light(black_filter , camera.pos)
+        
+        camera.render_surf.blit(black_filter , [0,0])
         
         camera.display(screen , screen.get_rect())
         screen.blit(font.render(f"player position : {int(player.hitbox.rect.x)} , {int(player.hitbox.rect.y)}" , True , [255 , 0 , 0]) , [0,0])

@@ -87,6 +87,45 @@ def collide_rect(r1 : FloatRect , r2 : FloatRect):
     r1.pos.x + r1.size.x > r2.pos.x and
     r1.pos.y < r2.pos.y + r2.size.y and 
     r1.pos.y + r1.size.y > r2.pos.y)
+
+def learp(a, b, t):
+            return a + t * (b - a)
+
+def collide_line_with_line(line1, line2):
+     x1, y1, x2, y2 = line1
+     x3, y3, x4, y4 = line2
+     
+     uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+     uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+     if (uA >= 0 and uA <= 1 and uB >= 0 and uB <= 1): 
+          intersectionX = x1 + (uA * (x2-x1))
+          intersectionY = y1 + (uA * (y2-y1))
+          return pygame.Vector2(intersectionX, intersectionY)
+     return pygame.Vector2()
+
+def collide_ray_with_rect(ray, _colliders):
+     min_len = 100000000000
+     min_len_point = pygame.Vector2()
+     for c in _colliders:
+          x, y, w, h = c.rect.pos.x, c.rect.pos.y, c.rect.size[0], c.rect.size[1] 
+          lines = [
+          [x, y, x, y+h], 
+          [x, y, x+w, y],
+          [x+w, y, x+w, y+h],
+          [x, y+h, x+w, y+h],
+          ]
+          for line in lines:
+               try:
+                    point = collide_line_with_line(ray, line)
+                    if point == pygame.Vector2():
+                         continue
+                    new_len = (point - pygame.Vector2(ray[0], ray[1])).length() 
+                    if new_len < min_len:
+                         min_len = new_len 
+                         min_len_point = point
+               except:
+                    pass
+     return min_len_point
      
 
 class Collider():
