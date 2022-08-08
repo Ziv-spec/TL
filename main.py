@@ -42,11 +42,38 @@ def main():
     objectlist = {k : v for k , v in tilemap.object_datas.items()}
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
-    
+
+    enemies_path = []
+    for e in enemies_datas: 
+
+        enemy_path = []
+        before = []
+        after = []
+        start_point_found = False
+        for p in enemies_datas[e]:
+            if p['type'] == 'enemy_path':
+                x, y, width, height = p['x'], p['y'], p['width'], p['height']
+                start_point = p['startpoint']
+                print(p)
+
+                if not start_point_found and start_point['value'] == 'true':  
+                    before.append((x, y, width, height))
+                elif start_point['value'] == 'true': 
+                    after.append((x, y, width, height))
+
+                if start_point['value'] == 'false':
+                    enemy_path.append((x, y, width, height))
+                    start_point_found = True
+        enemy_path.extend(reversed(before))
+        enemy_path.extend(reversed(after))
+        enemies_path.append(enemy_path)
+    print(enemies_path)
+        
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
     enemy.set_direction(pygame.Vector2(0 , -1))
+    enemy.set_path(enemies_path[0])
     
     while True:
         
@@ -123,7 +150,7 @@ def main():
             if not player_displayed and y > player.hitbox.rect.bottom:
                 player.display(camera.render_surf , camera.pos)
                 player_displayed = True
-            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+            # camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
         
         if not player_displayed:
             player.display(camera.render_surf , camera.pos)

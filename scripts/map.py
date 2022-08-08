@@ -97,10 +97,10 @@ class TileMap():
           layer_datas = {}
           self.object_datas = get_objects(root)
           
-          for k ,  obj in self.object_datas.items():
-               if not "enemy" in k:
-                    tid = obj.pop("gid")
-                    obj["texture"] = self.tileset[int(tid)-1]
+          # for k ,  obj in self.object_datas.items():
+          #      if not "enemy" in k:
+          #           tid = obj.pop("gid")
+          #           obj["texture"] = self.tileset[int(tid)-1]
           
           for layer in root.findall("layer"):
                data = layer.find("data").text
