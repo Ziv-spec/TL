@@ -10,7 +10,7 @@ from scripts.entity import *
 from scripts.map import TileMap
 
 from pygame import Vector2
-from math import atan, pi 
+from math import tan, pi 
 
 class Enemy():
     def __init__(self, hitbox: Collider):
@@ -21,9 +21,9 @@ class Enemy():
         self.texture = pygame.Surface((32, 32))
         self.texture.fill((255, 0, 0)) # red
         self.velocity = Vector2()
-        self.view_angle = 80 # in degrees
+        self.view_angle = 60# in degrees
 
-        self.direction = Vector2(1,2)
+        self.direction = 0
         self.colliders = None
 
     def update(self, dt, colliders):
@@ -32,27 +32,26 @@ class Enemy():
         # construct enemy view 
         ewidth, eheight = self.hitbox.rect.size
         self.ecenter = Vector2(self.hitbox.rect.x+ewidth//2, self.hitbox.rect.y+eheight//2)
+        
+        self.direction+=.1
 
-        view_angle_radians = self.view_angle*pi/180
-        direction_in_radians = 0
-        if self.direction.x != 0:
-            direction_in_radians = atan(self.direction.y / self.direction.x)
+        view_angle_radians = (self.view_angle*pi)/180
+        self.direction_in_radians = (self.direction*pi)/180
+        right = self.direction_in_radians - view_angle_radians/2
+        left  = self.direction_in_radians + view_angle_radians/2
 
-        right = direction_in_radians - view_angle_radians/2
-        left  = direction_in_radians + view_angle_radians/2
-        right_direction, left_direction = Vector2(1, (-right)).normalize(), Vector2(1, (-left)).normalize()
-        self.right = right_direction
-        self.left = left_direction
+        self.right , self.left = Vector2(1, -tan(right)).normalize(), Vector2(1, -tan(left)).normalize()
 
         def learp(a, b, t):
             return a + t * (b - a)
 
         def collide_line_with_line(line1, line2):
+            # print(line1, line2)
             x1, y1, x2, y2 = line1
             x3, y3, x4, y4 = line2
             
-            uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
-            uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+            uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / (((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))+.001)
+            uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / (((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))+.001)
             if (uA >= 0 and uA <= 1 and uB >= 0 and uB <= 1): 
                 intersectionX = x1 + (uA * (x2-x1))
                 intersectionY = y1 + (uA * (y2-y1))
@@ -81,13 +80,13 @@ class Enemy():
             return min_len_point
 
         radius = 1500
-        loop_amount = 10
-
+        loop_amount = 11
+        # raycast within view
         points = []
         empty_vector = Vector2()
         for i in range(0, loop_amount):
             t = i/loop_amount
-            ray_direction = learp(right_direction, left_direction, t)
+            ray_direction = learp(self.right, self.left, t)
             x1, y1 = self.ecenter
             x2, y2 = self.ecenter + ray_direction * radius
             r=  (x1, y1, x2, y2)
@@ -96,13 +95,6 @@ class Enemy():
             if point != empty_vector:
                 points.append(point)
         self.points = points
-
-        # direction = Vector2(player.hitbox.rect.x, player.hitbox.rect.y) - Vector2(self.hitbox.rect.x, self.hitbox.rect.y)
-        # if direction.x**2 + direction.y**2 > 0:
-        #     direction = direction.normalize()
-        # self.a = direction*100*dt
-        # self.velocity += self.a * dt
-
 
 
     def get_colliders(self , colliders):
@@ -138,13 +130,14 @@ class Enemy():
         self.ecenter -= offset
         pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.right*100)
         pygame.draw.line(surface, (0, 0, 255),self.ecenter, self.ecenter+ self.left*100)
+
         self.points = [point-offset for point in self.points]
         self.points.append(self.ecenter)
-
+        self.points.append(self.left+self.ecenter)
+        self.points.append(self.right+self.ecenter)
 
         if len(self.points) >= 2:
             pygame.draw.polygon(surface, (255, 0, 0), self.points, 2)
-
         for point in self.points:
             pygame.draw.circle(surface, (0, 0, 255), point, 3, 3)
         
