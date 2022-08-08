@@ -73,7 +73,7 @@ def main():
                     for obj in objectlist.values():
                         pos = pygame.Vector2(float(value["x"])+float(value["width"])/2 , float(value["y"])+float(value["height"])/2)
                         if pos.distance_to(player.hitbox.rect.pos) <= 48:
-                            obj["texture"]
+                            obj["texture"] = tilemap.tileset[39]
             elif event.type == KEYUP:
                 if event.key == K_q:
                     player.km["left"] = False
@@ -117,11 +117,11 @@ def main():
         y = 0
         player_displayed = False
         for value in objectlist.values():
-            y = float(value["y"])+float(value["height"])
+            y = float(value["y"])
             if not player_displayed and y > player.hitbox.rect.bottom:
                 player.display(camera.render_surf , camera.pos)
                 player_displayed = True
-            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])-float(value["height"])) - camera.pos)
         
         
         if not player_displayed:
@@ -131,6 +131,9 @@ def main():
         enemy.display(camera.render_surf , camera.pos)
         
         enemy.display_light(black_filter , camera.pos)
+        
+        for collider in colliders:
+            collider.rect.draw(camera.render_surf , camera.pos , True)
         
         camera.render_surf.blit(black_filter , [0,0])
         
