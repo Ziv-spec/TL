@@ -23,7 +23,7 @@ def main():
     timepoint = time.time()
     font = pygame.font.Font(None , 30)
     
-    player = Player(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+    player = Player(Collider(FloatRect(pygame.Vector2(int(tilemap.object_datas["player_spawn"]["x"]) , int(tilemap.object_datas["player_spawn"]["y"])) , pygame.Vector2(16 , 16)) , "block"))
     player.hitbox_offset = pygame.Vector2(
         16 - player.hitbox.rect.size.x / 2,
         48 - player.hitbox.rect.size.y 
@@ -32,7 +32,7 @@ def main():
     chunk_pos = 0
     
     def sort_object(item):
-        if not "enemy" in item[0]:
+        if "chest" in item[0]:
             return float(item[1]["y"])+32
         else:
             return 0
@@ -69,6 +69,11 @@ def main():
                     player.km["up"] = True
                 if event.key == K_s:
                     player.km["down"] = True
+                if event.key == K_o:
+                    for obj in objectlist.values():
+                        pos = pygame.Vector2(float(value["x"])+float(value["width"])/2 , float(value["y"])+float(value["height"])/2)
+                        if pos.distance_to(player.hitbox.rect.pos) <= 48:
+                            obj["texture"]
             elif event.type == KEYUP:
                 if event.key == K_q:
                     player.km["left"] = False
@@ -77,7 +82,7 @@ def main():
                 if event.key == K_z:
                     player.km["up"] = False
                 if event.key == K_s:
-                    player.km["down"] = False  
+                    player.km["down"] = False
         
         colliders = []
         
@@ -105,7 +110,7 @@ def main():
             camera.pos.y = 0
         if camera.pos.y > tilemap.size[1]*32-camera.size.y:
             camera.pos.y = tilemap.size[1]*32-camera.size.y
-
+                
         
         tilemap.display(camera.render_surf , camera.pos)
         
@@ -117,6 +122,7 @@ def main():
                 player.display(camera.render_surf , camera.pos)
                 player_displayed = True
             camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+        
         
         if not player_displayed:
             player.display(camera.render_surf , camera.pos)
