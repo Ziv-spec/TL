@@ -33,8 +33,6 @@ class Enemy():
         ewidth, eheight = self.hitbox.rect.size
         self.ecenter = Vector2(self.hitbox.rect.x+ewidth//2, self.hitbox.rect.y+eheight//2)
         
-        self.direction+=.1
-
         view_angle_radians = (self.view_angle*pi)/180
         self.direction_in_radians = (self.direction*pi)/180
         right = self.direction_in_radians - view_angle_radians/2
@@ -95,6 +93,7 @@ class Enemy():
             if point != empty_vector:
                 points.append(point)
         self.points = points
+        self.velocity += Vector2(1*dt, 0)
 
 
     def get_colliders(self , colliders):
@@ -105,9 +104,24 @@ class Enemy():
         
         return collided
 
+    def set_path(self, path):
+        self.path = path
+
     def move(self , colliders):
-        
+
         self.hitbox.rect.x += self.velocity.x
+        # movement towards a predefined path
+
+        # calc position in map ceil no floor
+
+        # move towards next position
+
+
+        rect = self.hitbox.rect
+        x, y = rect.pos + rect.size/2
+        print(x, y)
+
+        # collision detection
         collided = self.get_colliders(colliders)
         for collider in collided:
             if self.velocity.x < 0:
@@ -122,7 +136,8 @@ class Enemy():
                 self.hitbox.rect.y = collider.rect.bottom
             elif self.velocity.y > 0:
                 self.hitbox.rect.bottom = collider.rect.y
-    
+        
+
     def display(self , surface : pygame.Surface , offset : pygame.Vector2):
         text_pos = self.hitbox.rect.pos - self.hitbox_offset - offset
         surface.blit(self.texture , text_pos)
@@ -179,6 +194,9 @@ def main():
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if not "enemy" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416 , 1280) , pygame.Vector2(16 , 16)) , "block"))
+
+    epath = [] 
+    enemy.set_path(epath)
     
     while True:
         
@@ -226,6 +244,7 @@ def main():
             all_colliders.extend(chunck)
 
         enemy.update(dt, all_colliders)
+        enemy.move(colliders)
         
 
         player.update(dt)
