@@ -42,7 +42,6 @@ def main():
     objectlist = {k : v for k , v in tilemap.object_datas.items()}
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
-    
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))

@@ -67,7 +67,6 @@ def get_objects(root : Element):
                obj_list[key] = new_datas
           else:
                obj_list[key].append(attributes|prop_datas)
-          
      
      return obj_list
 
