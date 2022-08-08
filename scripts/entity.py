@@ -102,17 +102,38 @@ class Enemy():
         self.texture = pygame.Surface((16, 16))
         self.texture.fill((255, 0, 0)) # red
         self.velocity = pygame.Vector2()
-        self.view_angle = 60 # in degrees
+        self.view_angle = 80 # in degrees
         self.view_distance = 150
 
-        self.direction = pygame.Vector2(1,2)
+        self.direction = pygame.Vector2(0 , 1)
         self.colliders = None
         
-        self.light = pygame.image.load("./data/light.png").convert_alpha()
+        self.original_texture = pygame.image.load("./data/enemy_view.png").convert_alpha()
+        self.light = self.original_texture.copy()
+        
         self.light = pygame.transform.scale(self.light , [self.view_distance*2]*2)
         
         self.light = mult_image(self.light , [100 , 100 , 100])
-    
+        
+    def set_direction(self , direction : pygame.Vector2):
+        self.direction = direction
+        
+        # angle = 0
+        # try:
+        #     angle = 90-degrees()
+        # except:
+        #     angle = 90
+        if direction.y == -1:
+            self.light = pygame.transform.flip(self.original_texture , False , True)
+        elif direction.x == -1:
+            self.light = pygame.transform.rotate(self.original_texture , 90)
+        elif direction.x == 1:
+            self.light = pygame.transform.flip(pygame.transform.rotate(self.original_texture , 90) , True , False)
+        
+        self.light = pygame.transform.scale(self.light , [self.view_distance*2]*2)
+        
+        self.light = mult_image(self.light , [100 , 100 , 100])
+        
     @property
     def rect(self):
         return self.hitbox.rect
@@ -124,16 +145,15 @@ class Enemy():
         ewidth, eheight = self.hitbox.rect.size
         self.ecenter = pygame.Vector2(self.hitbox.rect.x+ewidth//2, self.hitbox.rect.y+eheight//2)
 
-        view_angle_radians = self.view_angle*pi/180
-        direction_in_radians = 0
-        if self.direction.x != 0:
-            direction_in_radians = atan(self.direction.y / self.direction.x)
+        # view_angle_radians = self.view_angle*pi/180
+        # direction_in_radians = 0
+        # if self.direction.x != 0:
+        #     direction_in_radians = atan(self.direction.y / self.direction.x)
 
-        right = direction_in_radians - view_angle_radians/2
-        left  = direction_in_radians + view_angle_radians/2
-        right_direction, left_direction = pygame.Vector2(1, (-right)).normalize(), pygame.Vector2(1, (-left)).normalize()
-        self.right = right_direction
-        self.left = left_direction
+        #direction angle
+        da = pygame.Vector2(self.direction.x , -self.direction.y).angle_to(pygame.Vector2(0))
+        
+        self.right , self.left = pygame.Vector2(cos(radians(da+self.view_angle/2)),-sin(radians(da+self.view_angle/2))),pygame.Vector2(cos(radians(da-self.view_angle/2)),-sin(radians(da-self.view_angle/2)))
 
         loop_amount = 10
 
@@ -141,7 +161,7 @@ class Enemy():
         empty_vector = pygame.Vector2()
         for i in range(0, loop_amount):
             t = i/loop_amount
-            ray_direction = learp(right_direction, left_direction, t)
+            ray_direction = learp(self.right, self.left, t)
             x1, y1 = self.ecenter
             x2, y2 = self.ecenter + ray_direction * self.view_distance
             r=  (x1, y1, x2, y2)
@@ -188,7 +208,7 @@ class Enemy():
     def display_light(self , surface : pygame.Surface , offset=pygame.Vector2(0,0)):
         light_size = pygame.Vector2([self.view_distance*2]*2)
         light_offset = offset - (self.rect.size / 2 - light_size / 2)
-        surface.blit(self.light , [self.rect.x - light_offset.x , self.rect.y - light_offset.y] , special_flags=BLEND_RGB_ADD)
+        surface.blit(self.light , [self.rect.x - light_offset.x , self.rect.y - light_offset.y], special_flags=BLEND_RGB_ADD)
     
     def display(self , surface : pygame.Surface , offset : pygame.Vector2):
         text_pos = self.hitbox.rect.pos - self.hitbox_offset - offset

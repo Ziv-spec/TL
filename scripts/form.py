@@ -115,13 +115,16 @@ def collide_ray_with_rect(ray, _colliders):
           [x, y+h, x+w, y+h],
           ]
           for line in lines:
-               point = collide_line_with_line(ray, line)
-               if point == pygame.Vector2():
-                    continue
-          new_len = (point - pygame.Vector2(ray[0], ray[1])).length() 
-          if new_len < min_len:
-               min_len = new_len 
-               min_len_point = point
+               try:
+                    point = collide_line_with_line(ray, line)
+                    if point == pygame.Vector2():
+                         continue
+                    new_len = (point - pygame.Vector2(ray[0], ray[1])).length() 
+                    if new_len < min_len:
+                         min_len = new_len 
+                         min_len_point = point
+               except:
+                    pass
      return min_len_point
      
 
