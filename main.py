@@ -58,22 +58,21 @@ def main():
                 start_point = p['startpoint']
 
                 if not start_point_found and start_point['value'] == 'false':  
-                    before.append((x, y, width, height))
+                    before.append((int(x), int(y), int(width), int(height)))
                 elif start_point['value'] == 'false': 
-                    after.append((x, y, width, height))
+                    after.append((int(x), int(y), int(width), int(height)))
 
                 if start_point['value'] == 'true':
-                    enemy_path.append((x, y, width, height))
+                    enemy_path.append((int(x), int(y), int(width), int(height)))
                     start_point_found = True
         print(before, after, enemy_path)
         enemy_path.extend(reversed(before))
         enemy_path.extend(reversed(after)) # TODO: check whether I need to reverse after or not 
         enemies_path.append(enemy_path)
-    print(enemies_path)
         
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
-    enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
+    enemy = Enemy(Collider(FloatRect(pygame.Vector2(752.0, 784.0) , pygame.Vector2(16 , 16)) , "block"))
     enemy.set_direction(pygame.Vector2(0 , -1))
     enemy.set_path(enemies_path[0])
     
@@ -127,8 +126,6 @@ def main():
         player.move(colliders)
 
         all_colliders.append(player.hitbox)
-        enemy.update(dt, all_colliders)
-        enemy.move(colliders)
 
         
         camera.pos = player.hitbox.rect.pos + player.hitbox.rect.size / 2 - camera.size / 2
@@ -142,7 +139,10 @@ def main():
         if camera.pos.y > tilemap.size[1]*32-camera.size.y:
             camera.pos.y = tilemap.size[1]*32-camera.size.y
 
-        
+        enemy.update(dt, all_colliders, camera.pos)
+        enemy.move(colliders)
+
+
         tilemap.display(camera.render_surf , camera.pos)
         
         y = 0

@@ -109,6 +109,8 @@ class Enemy():
         self.direction = 0
         self.colliders = None
 
+        self.current_index = 0 # for enemy path
+
         self.view_distance = 150
         self.original_texture = pygame.image.load("./data/enemy_view.png").convert_alpha()
         self.light = self.original_texture.copy()
@@ -139,7 +141,7 @@ class Enemy():
     def rect(self):
         return self.hitbox.rect
 
-    def update(self, dt, colliders):
+    def update(self, dt, colliders, offset):
         self.colliders = colliders
         
         # construct enemy view 
@@ -204,13 +206,26 @@ class Enemy():
                 points.append(point)
         self.points = points
 
-        # print(self.path)
-        # direction = path
-        # if direction.x**2 + direction.y**2 > 0:
-        #     direction = direction.normalize()
-        # self.a = direction*100*dt
-        # self.velocity += self.a * dt        
+        pos = self.hitbox.rect.pos
+        tile_size = (32, 32) # hardcoded but meehh
+        
+        x, y = pos.x, pos.y 
+    
+        px, py, pw, ph = self.path[self.current_index]
+        pcx, pcy = px + pw/2, py + ph/2 
 
+        delta = Vector2(x, y) - Vector2(pcx, pcy) 
+        delta.x = int(delta.x)
+        delta.y = int(delta.y)
+        if delta == Vector2():
+            self.current_index += 1
+            if self.current_index >= len(self.path):
+                self.current_index = 0
+        else:
+            direction = -delta.normalize() 
+            self.velocity = direction * 10 * dt 
+        
+            
     def get_colliders(self , colliders):
         collided = []
         for collider in colliders:
