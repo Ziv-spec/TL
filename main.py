@@ -43,6 +43,8 @@ def main():
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
 
+
+    # load 
     enemies_path = []
     for e in enemies_datas: 
 
@@ -54,18 +56,18 @@ def main():
             if p['type'] == 'enemy_path':
                 x, y, width, height = p['x'], p['y'], p['width'], p['height']
                 start_point = p['startpoint']
-                print(p)
 
-                if not start_point_found and start_point['value'] == 'true':  
+                if not start_point_found and start_point['value'] == 'false':  
                     before.append((x, y, width, height))
-                elif start_point['value'] == 'true': 
+                elif start_point['value'] == 'false': 
                     after.append((x, y, width, height))
 
-                if start_point['value'] == 'false':
+                if start_point['value'] == 'true':
                     enemy_path.append((x, y, width, height))
                     start_point_found = True
+        print(before, after, enemy_path)
         enemy_path.extend(reversed(before))
-        enemy_path.extend(reversed(after))
+        enemy_path.extend(reversed(after)) # TODO: check whether I need to reverse after or not 
         enemies_path.append(enemy_path)
     print(enemies_path)
         
@@ -150,7 +152,7 @@ def main():
             if not player_displayed and y > player.hitbox.rect.bottom:
                 player.display(camera.render_surf , camera.pos)
                 player_displayed = True
-            # camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
+            camera.render_surf.blit(value["texture"] , pygame.Vector2(float(value["x"]) , float(value["y"])) - camera.pos)
         
         if not player_displayed:
             player.display(camera.render_surf , camera.pos)

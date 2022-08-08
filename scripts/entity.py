@@ -203,9 +203,9 @@ class Enemy():
             if point != empty_vector:
                 points.append(point)
         self.points = points
-        # self.velocity += Vector2(1*dt, 0)
 
-        # direction = Vector2(player.hitbox.rect.x, player.hitbox.rect.y) - Vector2(self.hitbox.rect.x, self.hitbox.rect.y)
+        # print(self.path)
+        # direction = path
         # if direction.x**2 + direction.y**2 > 0:
         #     direction = direction.normalize()
         # self.a = direction*100*dt
