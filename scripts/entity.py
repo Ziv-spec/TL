@@ -234,6 +234,7 @@ class Enemy():
 
         rect = self.hitbox.rect
         x, y = rect.pos + rect.size/2
+        print(x, y)
 
         # collision detection
         collided = self.get_colliders(colliders)
