@@ -42,6 +42,35 @@ def main():
     objectlist = {k : v for k , v in tilemap.object_datas.items()}
     
     enemies_datas = {k : v for k , v in objectlist.items() if "enemy" in k}
+
+
+    # load 
+    enemies_path = []
+    for e in enemies_datas: 
+
+        enemy_path = []
+        before = []
+        after = []
+        start_point_found = False
+        for p in enemies_datas[e]:
+            if p['type'] == 'enemy_path':
+                x, y, width, height = p['x'], p['y'], p['width'], p['height']
+                start_point = p['startpoint']
+
+                if not start_point_found and start_point['value'] == 'false':  
+                    before.append((x, y, width, height))
+                elif start_point['value'] == 'false': 
+                    after.append((x, y, width, height))
+
+                if start_point['value'] == 'true':
+                    enemy_path.append((x, y, width, height))
+                    start_point_found = True
+        print(before, after, enemy_path)
+        enemy_path.extend(reversed(before))
+        enemy_path.extend(reversed(after)) # TODO: check whether I need to reverse after or not 
+        enemies_path.append(enemy_path)
+    print(enemies_path)
+
     objectlist = {k : v for k , v in sorted(objectlist.items() , key=sort_object) if "chest" in k}
 
     enemy = Enemy(Collider(FloatRect(pygame.Vector2(416+128 , 1280-128) , pygame.Vector2(16 , 16)) , "block"))
