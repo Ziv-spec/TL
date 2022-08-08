@@ -187,7 +187,7 @@
     <property name="startpoint" type="bool" value="false"/>
    </properties>
   </object>
-  <object id="10" name="enemy1" type="enemy_pa" x="736" y="832" width="32" height="32">
+  <object id="10" name="enemy1" type="enemy_path" x="736" y="832" width="32" height="32">
    <properties>
     <property name="path" type="object" value="6"/>
     <property name="startpoint" type="bool" value="false"/>
